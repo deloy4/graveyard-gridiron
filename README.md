@@ -13,7 +13,7 @@ art and sound here are all new.
 Before the snap, the up and down arrows pick a play and Space snaps the ball. After the
 snap, the arrow keys (or I J K L) move, and A, S and D throw to the receiver with that
 letter while you're still behind the line of scrimmage. If a zombie is touching the
-receiver when the ball arrives, the pass is incomplete. M mutes the sound. On a
+receiver when the ball arrives, the pass is incomplete. A touchdown is worth 7 points, and running into a ghost is worth 2, though it leaves a tombstone in its place. M mutes the sound. On a
 touchscreen, buttons for all of these appear under the field.
 
 ## Running it
