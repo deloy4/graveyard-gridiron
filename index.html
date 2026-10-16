@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graveyard Gridiron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@400;500;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0a12;
+    --panel: #1b1220;
+    --ink: #e8e2c8;
+    --muted: #7d6c88;
+    --accent: #8fd14f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 16px;
+  }
+  canvas {
+    width: min(100%, 1100px);
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 0 0 3px #2c1d33, 0 12px 40px rgba(0, 0, 0, 0.6);
+    touch-action: none;
+  }
+  .pad {
+    display: none;
+    gap: 24px;
+    align-items: center;
+  }
+  .dpad, .calls {
+    display: grid;
+    gap: 8px;
+  }
+  .dpad { grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 52px); }
+  .calls { grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 52px); }
+  .pad button {
+    font: 600 18px Inter, system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--panel);
+    border: 2px solid #3a2844;
+    border-radius: 10px;
+    touch-action: none;
+  }
+  .pad button:active { background: #3a2844; }
+  .dpad [data-act="up"] { grid-column: 2; }
+  .dpad [data-act="left"] { grid-column: 1; grid-row: 2; }
+  .dpad [data-act="down"] { grid-column: 2; grid-row: 2; }
+  .dpad [data-act="right"] { grid-column: 3; grid-row: 2; }
+  .calls [data-act="snap"] { grid-column: 1 / 3; font-size: 15px; }
+  .calls [data-act="play"] { font-size: 15px; }
+  .calls [data-act^="throw"] { color: #f0c13a; }
+  @media (pointer: coarse) { .pad { display: flex; } }
+  p { margin: 0; max-width: 1100px; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
+</style>
+</head>
+<body>
+  <canvas id="game" aria-label="Graveyard Gridiron game field"></canvas>
+  <div class="pad" aria-label="Touch controls">
+    <div class="dpad">
+      <button data-act="up" aria-label="Up">▲</button>
+      <button data-act="left" aria-label="Left">◀</button>
+      <button data-act="down" aria-label="Down">▼</button>
+      <button data-act="right" aria-label="Right">▶</button>
+    </div>
+    <div class="calls">
+      <button data-act="snap">Snap</button>
+      <button data-act="play" aria-label="Next play">Play</button>
+      <button data-act="throw0" aria-label="Throw to receiver A">A</button>
+      <button data-act="throw1" aria-label="Throw to receiver S">S</button>
+      <button data-act="throw2" aria-label="Throw to receiver D">D</button>
+    </div>
+  </div>
+  <p>Pick a play with the up and down arrows, snap with Space, and throw with A, S or D before you cross the line of scrimmage. If a zombie is touching the receiver when the ball arrives, the pass falls incomplete. Once you have the ball, run it to the far end zone. The 60-second clock only runs while a play is live, and you get four downs to make ten yards.</p>
+  <script src="game.js"></script>
+</body>
+</html>
