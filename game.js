@@ -57,7 +57,7 @@ function newGame() {
     receivers: [], ball: null, phase: 'pre', incomplete: false,
     camera: 0, scrimmage: 0, toGo: 10, down: 0, score: 0,
     playMs: 0, playStart: 0, freezeUntil: 0,
-    tackled: false, tdPending: false, over: false,
+    tackled: false, tdPending: false, over: false, cheated: cheat, boardShown: false,
     density: OPENING_DENSITY, slide: 0, ticks,
   };
   nextDown();
@@ -919,8 +919,11 @@ function prompt(text) {
   ctx.fillText(text, FIELD_W / 2, FIELD_H / 2 + 41);
 }
 
+// the browser sets this to Leaderboard when leaderboard.js has loaded
+let board = null;
+
 function hint() {
-  if (S.over) return 'Press any key for a new game';
+  if (S.over) return board ? 'Game over' : 'Press any key for a new game';
   if (S.phase === 'pre') return '↑ ↓ pick a play · Space to snap';
   if (S.phase === 'live') {
     return S.runner.col > S.scrimmage ? 'Past the line of scrimmage, so run it' : 'A S D to throw · arrows to scramble';
@@ -986,7 +989,7 @@ function draw() {
   if (S.incomplete) banner('INCOMPLETE', 52, '#e8e2c8');
   if (S.over) {
     if (S.ticks % 5) banner('GAME OVER', 60, '#ff5b3a');
-    prompt('Press any key for a new game');
+    prompt(board ? `Final score ${S.score}` : 'Press any key for a new game');
   } else if (!focused) {
     prompt('Click here to play');
   }
@@ -1097,11 +1100,30 @@ function boot() {
 
   sfx = makeAudio();
   newGame();
+  if (typeof Leaderboard !== 'undefined') board = Leaderboard;
+
+  // when a game ends, wait a moment on GAME OVER, then ask for a name and show the board
+  const showBoard = (score = 0, cheated = false, onClose = newGame) => {
+    board.open({ score, cheated, onClose, closeLabel: S.over ? 'Play again' : 'Back to the game' });
+  };
+  const watchForEnd = () => {
+    if (!board || !S.over || S.freezeUntil !== 0 || S.boardShown) return;
+    S.boardShown = true;
+    const ended = S;
+    setTimeout(() => { if (S === ended) showBoard(S.score, S.cheated); }, 1500);
+  };
+  // without the board, any key after GAME OVER starts a new game
+  const restart = () => { if (!board && S.over && S.freezeUntil === 0) { newGame(); return true; } return S.over; };
+  const scoresButton = document.querySelector('[data-scores]');
+  if (board && scoresButton) {
+    scoresButton.hidden = false;
+    scoresButton.addEventListener('click', () => { if (!S.over && S.phase === 'pre') showBoard(0, false, null); });
+  }
 
   const act = action => {
     sfx.wake();
     focused = true;
-    if (S.over && S.freezeUntil === 0) { newGame(); return; }
+    if (restart()) return;
     if (action === 'snap') snap();
     else if (action === 'play') choosePlay((playIndex + 1) % PLAYS.length);
     else if (action.startsWith('throw')) throwTo(Number(action.slice(5)));
@@ -1109,16 +1131,18 @@ function boot() {
   };
 
   window.addEventListener('keydown', e => {
+    if (board && board.isOpen()) return;
     sfx.wake();
     focused = true;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (key === '^') { cheat = !cheat; return; }
+    if (key === '^') { cheat = !cheat; if (cheat) S.cheated = true; return; }
     if (key === 'm') { sfx.muted = !sfx.muted; return; }
     if (S.over) {
-      if (S.freezeUntil === 0) newGame();
+      restart();
       e.preventDefault();
       return;
     }
+    if (key === 'h' && board && S.phase === 'pre') { showBoard(0, false, null); return; }
     if (KEYS[key]) { e.preventDefault(); press(KEYS[key]); return; }
     if (key === ' ') { e.preventDefault(); snap(); return; }
     const thrown = THROW_KEYS.indexOf(key.toUpperCase());
@@ -1130,7 +1154,7 @@ function boot() {
   canvas.addEventListener('pointerdown', () => {
     sfx.wake();
     focused = true;
-    if (S.over && S.freezeUntil === 0) newGame();
+    restart();
   });
   document.querySelectorAll('[data-act]').forEach(button => {
     button.addEventListener('pointerdown', e => {
@@ -1142,6 +1166,7 @@ function boot() {
   setInterval(tick, TICK_MS);
   setInterval(routeStep, ROUTE_MS);
   setInterval(resolveBall, 20);
+  setInterval(watchForEnd, TICK_MS);
   const frame = () => { draw(); requestAnimationFrame(frame); };
   requestAnimationFrame(frame);
 }

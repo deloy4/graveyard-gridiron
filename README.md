@@ -16,6 +16,17 @@ letter while you're still behind the line of scrimmage. If a zombie is touching 
 receiver when the ball arrives, the pass is incomplete. A touchdown is worth 7 points, and running into a ghost is worth 2, though it leaves a tombstone in its place. M mutes the sound. On a
 touchscreen, buttons for all of these appear under the field.
 
+## High scores
+
+When a game ends, the player types a name and the score goes on a board everyone shares, with an
+All Time list and a This Week list (weeks start Sunday at midnight, Mountain time). The scores are
+kept in the `arcade-scores` Supabase project, in one `scores` table for both games. Browsers can only
+call two database functions, `submit_score` and `get_leaderboard`, so nobody can change or delete a
+score from the page. To remove a bad score, delete its row in the Supabase table editor. Games where
+a cheat key was used don't post a score. `leaderboard.js` is the same file in both game repos, so
+copy any change to it across.
+
 ## Running it
 
-Open `index.html` in a browser. There is no build step.
+Open `index.html` in a browser. There is no build step. `game.js` is the game and `leaderboard.js`
+is the high score board.

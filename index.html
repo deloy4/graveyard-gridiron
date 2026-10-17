@@ -14,6 +14,19 @@
     --ink: #e8e2c8;
     --muted: #7d6c88;
     --accent: #8fd14f;
+    /* the high score board in leaderboard.js */
+    --lb-font: Inter, system-ui, sans-serif;
+    --lb-title-font: Creepster, fantasy;
+    --lb-title-size: 40px;
+    --lb-title: #ff5b3a;
+    --lb-bg: var(--bg);
+    --lb-panel: var(--panel);
+    --lb-edge: #3a2844;
+    --lb-ink: var(--ink);
+    --lb-muted: #9a88a6;
+    --lb-accent: var(--accent);
+    --lb-on-accent: #10200a;
+    --lb-mine: rgba(143, 209, 79, 0.16);
   }
   * { box-sizing: border-box; }
   body {
@@ -63,6 +76,17 @@
   .calls [data-act="play"] { font-size: 15px; }
   .calls [data-act^="throw"] { color: #f0c13a; }
   @media (pointer: coarse) { .pad { display: flex; } }
+  .scores-btn {
+    font: 600 14px Inter, system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--panel);
+    border: 2px solid #3a2844;
+    border-radius: 999px;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+  .scores-btn:hover { border-color: var(--accent); }
+  [hidden] { display: none !important; }
   p { margin: 0; max-width: 1100px; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
 </style>
 </head>
@@ -83,7 +107,9 @@
       <button data-act="throw2" aria-label="Throw to receiver D">D</button>
     </div>
   </div>
-  <p>Pick a play with the up and down arrows, snap with Space, and throw with A, S or D before you cross the line of scrimmage. If a zombie is touching the receiver when the ball arrives, the pass falls incomplete. Once you have the ball, run it to the far end zone. A touchdown is worth 7 points, and running into a ghost is worth 2, though it leaves a tombstone in its place. The 60-second clock only runs while a play is live, and you get four downs to make ten yards.</p>
+  <button class="scores-btn" data-scores hidden>High scores</button>
+  <p>Pick a play with the up and down arrows, snap with Space, and throw with A, S or D before you cross the line of scrimmage. If a zombie is touching the receiver when the ball arrives, the pass falls incomplete. Once you have the ball, run it to the far end zone. A touchdown is worth 7 points, and running into a ghost is worth 2, though it leaves a tombstone in its place. The 60-second clock only runs while a play is live, and you get four downs to make ten yards. When the game ends, put your name on the high score board. Press H before a snap to see it.</p>
+  <script src="leaderboard.js" data-game="graveyard-gridiron"></script>
   <script src="game.js"></script>
 </body>
 </html>
