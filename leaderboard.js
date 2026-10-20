@@ -1,10 +1,14 @@
 'use strict';
 // Shared high score board. Scores live in the arcade-scores Supabase project, so everyone who
-// plays sees the same list. The page loads this with <script src="leaderboard.js" data-game="...">
-// and sets the --lb-* colours and fonts in its own CSS. The same file is in both game repos.
+// plays sees the same list. The page loads the arcade sign-in first, then this:
+//   <script src="https://deloy4.github.io/bfg/auth-v1.js"></script>
+//   <script src="leaderboard.js" data-game="...">
+// and sets the --lb-* colours and fonts in its own CSS. The same file is in every arcade game repo.
 //
-// Leaderboard.open({ score, cheated, onClose }) asks for a name when there is a score to save,
-// then shows the All Time and This Week lists. Leaderboard.open({ onClose }) only shows the lists.
+// Leaderboard.open({ score, cheated, onClose }) offers to save a score when there is one, then shows
+// the All Time and This Week lists. Scores go on the board under the signed-in player's name; a
+// guest is asked to sign in first (the shared sign-in, so it counts in every game). Leaderboard.open({ onClose })
+// only shows the lists.
 
 const Leaderboard = (() => {
   const API = 'https://ffkwudvifwapjcunzbce.supabase.co/rest/v1/rpc/';
@@ -31,11 +35,20 @@ const Leaderboard = (() => {
     }).finally(() => clearTimeout(timer));
   }
 
-  function savedName() {
-    try { return localStorage.getItem('arcade-name') || localStorage.getItem('jetpack-name') || ''; } catch (e) { return ''; }
-  }
-  function saveName(name) {
-    try { localStorage.setItem('arcade-name', name); } catch (e) { /* private window */ }
+  const AR = window.Arcade || null;
+  // who the score will go under, and what the save button does
+  function showWho() {
+    el.who.textContent = '';
+    if (AR && AR.signedIn() && AR.player) {
+      el.who.append('Saving as '); const b = document.createElement('b'); b.textContent = AR.player.name; el.who.append(b);
+      el.save.textContent = 'Save score';
+    } else if (AR) {
+      el.who.textContent = 'Sign in to put your score on the board. It takes a name and a 4-digit PIN, or your email.';
+      el.save.textContent = 'Sign in and save';
+    } else {
+      el.who.textContent = 'Scores can only be saved on the game page at deloy4.github.io.';
+      el.save.hidden = true;
+    }
   }
 
   const CSS = `
@@ -49,6 +62,8 @@ const Leaderboard = (() => {
     color: var(--lb-title, var(--lb-accent, #fc6)); letter-spacing: 0.02em; line-height: 1.1; }
   .lb-final { margin: 0 0 14px; text-align: center; color: var(--lb-muted, #999); font-size: 15px; }
   .lb-final b { color: var(--lb-accent, #fc6); font-size: 22px; font-variant-numeric: tabular-nums; }
+  .lb-who { margin: 0 0 4px; text-align: center; font-size: 14px; line-height: 1.45; color: var(--lb-muted, #999); }
+  .lb-who b { color: var(--lb-ink, #eee); letter-spacing: 0.04em; }
   .lb label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--lb-muted, #999); }
   .lb input { width: 100%; padding: 10px 12px; font: 600 18px var(--lb-font, inherit); text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--lb-ink, #eee); background: var(--lb-bg, #0b0910);
@@ -94,9 +109,7 @@ const Leaderboard = (() => {
         <h2 id="lb-title">High Scores</h2>
         <form class="lb-entry" novalidate>
           <p class="lb-final">Your score <b></b></p>
-          <label for="lb-name">Your name for the board</label>
-          <input id="lb-name" name="name" maxlength="12" autocomplete="nickname" autocapitalize="characters"
-            spellcheck="false" enterkeyhint="done">
+          <p class="lb-who"></p>
           <div class="lb-row">
             <button type="submit" class="lb-primary">Save score</button>
             <button type="button" class="lb-secondary lb-skip">Skip</button>
@@ -115,7 +128,7 @@ const Leaderboard = (() => {
       </div>`;
     document.body.appendChild(root);
     for (const [k, sel] of Object.entries({
-      entry: '.lb-entry', final: '.lb-final b', name: '#lb-name', save: '.lb-entry .lb-primary',
+      entry: '.lb-entry', final: '.lb-final b', who: '.lb-who', save: '.lb-entry .lb-primary',
       skip: '.lb-skip', entryMsg: '.lb-entry-msg', board: '.lb-board', list: '.lb-list',
       boardMsg: '.lb-board-msg', close: '.lb-close',
     })) el[k] = root.querySelector(sel);
@@ -136,21 +149,26 @@ const Leaderboard = (() => {
     });
     // keep the game from reacting to anything typed or tapped while the board is up
     root.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (AR) AR.on(() => { if (open && !el.entry.hidden) showWho(); });
   }
 
   async function submit() {
-    const name = el.name.value.trim().replace(/\s+/g, ' ');
-    if (!name) { el.entryMsg.textContent = 'Type a name first.'; el.name.focus(); return; }
+    if (!AR) return;
+    if (!AR.signedIn()) {
+      el.save.disabled = el.skip.disabled = true;
+      const ok = await AR.signIn({ note: 'Sign in to put your score on the board. You stay signed in on this device, in every game.' });
+      el.save.disabled = el.skip.disabled = false;
+      showWho();
+      if (!ok) { el.save.focus(); return; }
+    }
     el.save.disabled = el.skip.disabled = true;
     el.entryMsg.textContent = 'Saving…';
     try {
-      const row = await call('submit_score', { p_game: GAME, p_name: name, p_score: el.score });
-      saveName(name);
-      mine = row;
+      mine = await AR.rpc('post_score', { p_game: GAME, p_score: el.score });
       showBoard();
     } catch (err) {
-      el.entryMsg.textContent = `Your score didn't save. ${err.message === 'Failed to fetch' || err.name === 'AbortError'
-        ? 'Check your connection and try again.' : err.message}`;
+      el.entryMsg.textContent = `Your score didn't save. ${/signed out/.test(err.message) ? 'You were signed out. Sign in and try again.' : err.message}`;
+      showWho();
     } finally {
       el.save.disabled = el.skip.disabled = false;
     }
@@ -227,9 +245,8 @@ const Leaderboard = (() => {
         el.entry.hidden = false;
         el.board.hidden = true;
         el.final.textContent = String(score);
-        el.name.value = savedName().slice(0, 12);
-        el.name.focus();
-        el.name.select();
+        showWho();
+        (el.save.hidden ? el.skip : el.save).focus();
       } else {
         showBoard();
       }
